@@ -1,0 +1,1 @@
+{"bin": ["./firmware/test/bird"], "pickle_parsers": "", "stats": "True", "data_keys": [], "base_addr": "0x400000", "eg_source_addr": "", "fw_path": "", "angr_explode_bins": [], "glob_var": [], "arch": "x64", "only_string": "False"}

@@ -1,0 +1,11 @@
+/home/karonte/.virtualenvs/karonte/local/lib/python2.7/site-packages/cffi/cparser.py:164: UserWarning: Global variable 'r' in cdef(): for consistency with C it should have a storage class specifier (usually 'extern')
+  "(usually 'extern')" % (decl.name,))
+INFO      | 2021-01-06 17:31 | Karonte  |  [32mLogging at: /home/karonte/bird_20210107.res[0m
+INFO      | 2021-01-06 17:31 | Karonte  |  [32mFirmware directory: [0m
+INFO      | 2021-01-06 17:31 | Karonte  |  [32mWe got a blob[0m
+INFO      | 2021-01-06 17:31 | Karonte  |  [32mBuilding bird CFG (this may take some time)[0m
+WARNING   | 2021-01-06 17:39 | Karonte  |  [33mFailed to add ./firmware/test/bird[0m
+                                                                                                         100% (0 of N/A) |#                                                  |Elapsed Time: 0:00:00 ETC: 12:00:00                                                                                                          INFO      | 2021-01-06 17:39 | Karonte  |  [32mAnalyzing orphan nodes[0m
+INFO      | 2021-01-06 17:39 | Karonte  |  [32mFinished, results in /home/karonte/bird_20210107.res[0m
+100% (0 of N/A) |#                                                  |Elapsed Time: 0:00:00 ETC: 12:00:00 
+0
