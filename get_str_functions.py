@@ -157,7 +157,24 @@ def get_any_arguments_call(p, b_addr):
         if stmt.offset in ordered_argument_regs[p.arch.name]:
             set_params.append(stmt)
 
-    return set_params  
+    return set_params
+    
+def is_call(bb):
+    """
+    Finds if basic blocks ends with a call.
+
+    :param bb: basic block
+    :return: True if bb ends with a call
+    """
+
+    if hasattr(bb, 'vex'):
+        return bb.vex.jumpkind == 'Ijk_Call'
+    if bb.irsb:
+        return bb.irsb.jumpkind == 'Ijk_Call'
+    return False
+
+def found(no, key_addr, reg_name):
+    pass
 
 if __name__  == '__main__':
     
@@ -175,14 +192,14 @@ if __name__  == '__main__':
     cfg = p.analyses.CFGFast(collect_data_references=True,
                             extra_cross_references=True)
     direct_str_refs = [s for s in cfg.memory_data.items() if s[0] in refs]
-    found = lambda *x:True
+    only_one = False
     for a,s in direct_str_refs:
         info_collected[s.address] = []
         
-        if s.vex.jumpkind == 'Ijk_Call' or s.irsb.jumpkind == 'Ijk_Call':
-            for (irsb_addr, stmt_idx, insn_addr) in list(s.refs):
+        if is_call(bb):
+            for (irsb_addr, stmt_idx, insn_addr) in liclearst(s.refs):
                 if are_parameters_in_registers(p):
-                    reg_used = get_reg_used(p, cfg, irsb_addr, stmt_idx, a, key_addrs)
+                    reg_used = get_reg_used(p, cfg, irsb_addr, stmt_idx, refs)
                     if not reg_used:
                         continue
                     ret = found(cfg.get_any_node(irsb_addr), s.address, reg_used)
