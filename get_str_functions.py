@@ -14,9 +14,9 @@ def get_bin_strings(filename):
         t_str = "" #terminate char
 
         for c in f.read():
-            if chr(c) in string.printable and c != '\n':
+            if c in string.printable and c != '\n':
                 last_off = off if not last_off else last_off
-                t_str += chr(c)
+                t_str += c
             else:
                 if t_str and len(t_str) > 1:
                     results.append((t_str, last_off))
@@ -159,6 +159,13 @@ def get_any_arguments_call(p, b_addr):
 
     return set_params  
 
+def is_call(bb):
+    if hasattr(bb, 'vex'):
+        return bb.vex.jumpkind == 'Ijk_Call'
+    if bb.irsb:
+        return bb.irsb.jumpkind == 'Ijk_Call'
+    return False
+
 if __name__  == '__main__':
     
     bin_path = '/home/karonte/karonte/firmware/test/bgpd' 
@@ -172,17 +179,18 @@ if __name__  == '__main__':
     refs = [p.loader.main_object.min_addr + off for off in offs ]
     print ("*mac* strs addrs:", [hex(ref) for ref in refs] )
     
-    cfg = p.analyses.CFGFast(collect_data_references=True,
+    cfg = p.analyses.CFG(collect_data_references=True,
                             extra_cross_references=True)
     direct_str_refs = [s for s in cfg.memory_data.items() if s[0] in refs]
     found = lambda *x:True
+    only_one = True # match once then exit
     for a,s in direct_str_refs:
         info_collected[s.address] = []
         
-        if s.vex.jumpkind == 'Ijk_Call' or s.irsb.jumpkind == 'Ijk_Call':
+        if is_call(s):
             for (irsb_addr, stmt_idx, insn_addr) in list(s.refs):
                 if are_parameters_in_registers(p):
-                    reg_used = get_reg_used(p, cfg, irsb_addr, stmt_idx, a, key_addrs)
+                    reg_used = get_reg_used(p, cfg, irsb_addr, stmt_idx, refs)
                     if not reg_used:
                         continue
                     ret = found(cfg.get_any_node(irsb_addr), s.address, reg_used)
