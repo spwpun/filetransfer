@@ -14,9 +14,9 @@ def get_bin_strings(filename):
         t_str = "" #terminate char
 
         for c in f.read():
-            if chr(c) in string.printable and c != '\n':
+            if c in string.printable and c != '\n':
                 last_off = off if not last_off else last_off
-                t_str += chr(c)
+                t_str += c
             else:
                 if t_str and len(t_str) > 1:
                     results.append((t_str, last_off))
@@ -189,7 +189,7 @@ if __name__  == '__main__':
     refs = [p.loader.main_object.min_addr + off for off in offs ]
     print ("*mac* strs addrs:", [hex(ref) for ref in refs] )
     
-    cfg = p.analyses.CFGFast(collect_data_references=True,
+    cfg = p.analyses.CFG(collect_data_references=True,
                             extra_cross_references=True)
     direct_str_refs = [s for s in cfg.memory_data.items() if s[0] in refs]
     only_one = False
