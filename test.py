@@ -1,8 +1,46 @@
 import angr
 import string
 
-def get_():
-    pass
+# Strings Buff
+MIN_STR_LEN = 3
+STR_LEN = 255
+ALLOWED_CHARS = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-/_' 
+EXTENDED_ALLOWED_CHARS = ALLOWED_CHARS + "%,.;+=-_)(*&^$#@!~`|<>{}[]"
+SEPARATOR_CHARS = ('-', '_')
+
+
+def get_bin_strings(filename):
+    # Retrive the strings within a binary
+    with open(filename, 'rb') as f:
+        res = []
+        last_off = None
+        off = 0
+        t_str = "" #terminate char
+        
+        for c in f.read():
+            if c in string.printable and c != '\n':
+                last_off = off if not last_off else last_off
+                t_str += c
+            else:
+                if t_str and len(t_str) > 1:
+                    res.append((t_str, last_off)) # save the strings and their offsets
+                last_off = None
+                t_str = ""
+            off += 1
+    
+    return res
+
+def get_mem_string(mem_bytes, extended = False):
+    # Return the set of consecutive ASCII chars within a list of bytes
+    tmp = ''
+    chars = EXTENDED_ALLOWED_CHARS if extended else ALLOWED_CHARS
+    
+    for c in mem_bytes:
+        if c not in chars:
+            break
+        tmp += c
+    
+    return tmp
 
 def get_string(p, mem_addr, extended=False):
     """
@@ -56,10 +94,22 @@ def get_string(p, mem_addr, extended=False):
     return candidate if len(candidate) >= MIN_STR_LEN else ''
 
 def main():
-    p = angr.Project('./bgpd')
+    bin_path = '/home/karonte/karonte/firmware/test/bgpd'
+    p = angr.Project(bin_path)
     cfg = p.analyses.CFG(collect_data_references=True, extra_cross_references=True)
-    funcs = cfg.kb.functions
-    print(func.name for func in funcs)
+    func_indexes = cfg.kb.functions.items()
+    packet_strs = ['holdtime', 'Marker', 'AS', 'BGP Identifier', 'withdraw routes', 'Path attributes', 'OPEN', 'UPDATE', 'KEEPALIVE', 'NOTIFICATION']
+    sm_strs = ['Idle', 'connect', 'active', 'opensent', 'openconfirm', 'established']
+    str_info = get_bin_strings(bin_path)
+    offs = [x[1] for x in str_info if 'mac' in x[0]] # Just test for one string
+    key_addrs = [p.loader.main_object.min_addr + off for off in offs]
 
+    for func in func_indexes:
+        c_func = cfg.kb.functions[func[0]]
+        for bb in c_func.blocks:
+            for con in bb.vex.all_constants:
+                if con.value in key_addrs:
+                    key = get_string(p,con.value)
+                    print c_func.name,"called string:",key
 if __name__ == "__main__":
     main()
