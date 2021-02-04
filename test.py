@@ -1,10 +1,11 @@
 import angr
 import string
+import monkeyhex
 
 # Strings Buff
 MIN_STR_LEN = 3
 STR_LEN = 255
-ALLOWED_CHARS = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-/_' 
+ALLOWED_CHARS = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-/_ ' 
 EXTENDED_ALLOWED_CHARS = ALLOWED_CHARS + "%,.;+=-_)(*&^$#@!~`|<>{}[]"
 SEPARATOR_CHARS = ('-', '_')
 
@@ -30,7 +31,7 @@ def get_bin_strings(filename):
     
     return res
 
-def get_mem_string(mem_bytes, extended = False):
+def get_mem_string(mem_bytes, extended = True):
     # Return the set of consecutive ASCII chars within a list of bytes
     tmp = ''
     chars = EXTENDED_ALLOWED_CHARS if extended else ALLOWED_CHARS
@@ -109,7 +110,7 @@ def main():
         for bb in c_func.blocks:
             for con in bb.vex.all_constants:
                 if con.value in key_addrs:
-                    key = get_string(p,con.value)
-                    print c_func.name,"called string:",key
+                    key = get_string(p,con.value, extended=True)
+                    print c_func.name,"called string: \"",key,"\" and it's at ",hex(con.value)
 if __name__ == "__main__":
     main()
