@@ -54,6 +54,8 @@ def get_string(p, mem_addr, extended=False):
     """
 
     bin_bounds = (p.loader.main_object.min_addr, p.loader.main_object.max_addr)
+    if mem_addr<bin_bounds[0] and mem_addr>bin_bounds[1]:
+        return '[Error] mem_addr invalid!'
     try:
         text_bounds = (p.loader.main_object.sections_map['.text'].min_addr,
                        p.loader.main_object.sections_map['.text'].max_addr)
@@ -94,6 +96,42 @@ def get_string(p, mem_addr, extended=False):
     candidate = string_1 if len(string_1) > len(string_2) else string_2
     return candidate if len(candidate) >= MIN_STR_LEN else ''
 
+def find_functions(p, cfg, str_info, key_str, func_indexes, cnter):
+    '''
+    cnter is a counter to calc the times of function
+    '''
+    offs = [x[1] for x in str_info if key_str in x[0]]
+    key_addrs = [p.loader.main_object.min_addr + off for off in offs] # Maybe here are some mistakes
+    bin_bounds = (p.loader.main_object.min_addr, p.loader.main_object.max_addr)
+    
+    for func in func_indexes:
+        c_func = cfg.kb.functions[func[0]]
+        for bb in c_func.blocks:
+            if bb.addr == 0x5020740:
+                #DEBUG                
+                print "[DEBUG]", c_func.name,"occurred 0x5020740 constants, then find it in IDA"
+                #DEBUG
+            if bb.addr > bin_bounds[1] or bb.addr < bin_bounds[0]:
+                continue
+            for con in bb.vex.all_constants:
+                if con.value in key_addrs:
+                    try:
+                        key = get_string(p, con.value, extended=True)
+                    except:
+                        key = '[Unfounded!]'
+                    #print "[INFO] ",c_func.name,"called string: \"",key,"\" and it's at ",hex(con.value)
+                    cnter[c_func.name] = 1 if not cnter.has_key(c_func.name) else cnter[c_func.name]+1
+        
+def data_save(filename, data):
+    f = open(filename, 'a')
+    statics = "--------There are "+str(len(data))+" functions.--------\nTimes     Function_name\n"
+    f.write(statics)
+    for i in range(len(data)):
+        s = str(data[i][1]) + "    "+ data[i][0]+'\n'
+        f.write(s)
+    f.close()
+
+
 def main():
     bin_path = '/home/karonte/karonte/firmware/test/bgpd'
     p = angr.Project(bin_path)
@@ -102,15 +140,20 @@ def main():
     packet_strs = ['holdtime', 'Marker', 'AS', 'BGP Identifier', 'withdraw routes', 'Path attributes', 'OPEN', 'UPDATE', 'KEEPALIVE', 'NOTIFICATION']
     sm_strs = ['Idle', 'connect', 'active', 'opensent', 'openconfirm', 'established']
     str_info = get_bin_strings(bin_path)
-    offs = [x[1] for x in str_info if 'mac' in x[0]] # Just test for one string
-    key_addrs = [p.loader.main_object.min_addr + off for off in offs]
+    packet_cnter = {}
+    sm_cnter = {}
+    for key_str in packet_strs:
+        find_functions(p, cfg, str_info, key_str, func_indexes, packet_cnter)
+    for key_str in sm_strs:
+        find_functions(p, cfg, str_info, key_str, func_indexes, sm_cnter)
+    order_p_cnter = sorted(packet_cnter.items(), key = lambda x:x[1], reverse = True)
+    order_s_cnter = sorted(sm_cnter.items(), key = lambda x:x[1], reverse = True)
+    print "The most 5 high frequency packet functions: ", order_p_cnter[:5]
+    print "The most 5 high frequency state_ functions: ", order_s_cnter[:5]
+    
+    data_save('packet_fucntions_data', order_p_cnter)
+    data_save('statemch_functions_data', order_s_cnter)
 
-    for func in func_indexes:
-        c_func = cfg.kb.functions[func[0]]
-        for bb in c_func.blocks:
-            for con in bb.vex.all_constants:
-                if con.value in key_addrs:
-                    key = get_string(p,con.value, extended=True)
-                    print c_func.name,"called string: \"",key,"\" and it's at ",hex(con.value)
+
 if __name__ == "__main__":
     main()
